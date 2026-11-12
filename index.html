@@ -66,7 +66,7 @@ footer{color:var(--muted);font-size:12px;margin-top:18px}
 <body>
 <div class="wrap">
   <h1>Cleanup Period &amp; Eligibility Tool</h1>
-  <p class="sub">QBL Cleanup (SCU) and Full Service Cleanup. Rules come from <em>2026 Cleanup Front Office Standards &amp; Processes</em> (Jan 2026). Fiscal-year filers use the calendar rules shifted to their tax year. This replaces the Cleanup Period Calculator and the Fiscal Year Product Eligibility Matrix.</p>
+  <p class="sub">QBL Cleanup (SCU) and Full Service Cleanup. Rules come from <em>2026 Cleanup Front Office Standards &amp; Processes</em> (Jan 2026). Sales windows are calendar dates for every filer. The cleanup period follows the customer's tax year. This replaces the Cleanup Period Calculator and the Fiscal Year Product Eligibility Matrix.</p>
 
   <div class="card">
     <h2>1. Customer details</h2>
@@ -132,7 +132,7 @@ footer{color:var(--muted);font-size:12px;margin-top:18px}
 
   <div class="card">
     <h2>4. Eligibility by purchase month: <span id="gridTitle"></span></h2>
-    <p class="note" style="margin-top:-6px">Months are numbered from the first month of the tax year. Each cell shows the number of cleanup months. The purchase month is highlighted.</p>
+    <p class="note" style="margin-top:-6px">Columns are the 12 months of the tax year. Each cell shows the number of cleanup months. The purchase month is highlighted.</p>
     <div class="tablewrap"><table id="grid"></table></div>
   </div>
 
@@ -141,15 +141,15 @@ footer{color:var(--muted);font-size:12px;margin-top:18px}
       <summary>Rules used by this tool</summary>
       <ul class="tight">
         <li><b>Start:</b> a cleanup always starts on the first day of the tax year (calendar or fiscal). It can't start mid-year, and you can't clean part of a closed tax year. <span class="note">(slides 15, 56)</span></li>
-        <li><b>PY:</b> sold Jan 1–Aug 31 (tax-year months 1–8). <b>2026 purchases only: extended to Sep 30 (months 1–9).</b> Covers all 12 months of the tax year that just closed, except short-period returns. Fixed end. <span class="note">(slides 12, 14, 15)</span></li>
-        <li><b>CY:</b> sold May 1–Dec 31 (months 5–12). Covers the start of the tax year through the month before purchase. Fixed end. <span class="note">(slides 12, 14, 15)</span></li>
-        <li><b>PY + CY:</b> sold May 1–Aug 31 (months 5–8). <b>2026 purchases only: extended to Sep 30 (months 5–9).</b> Covers the start of the prior tax year through the month before purchase, up to 20 months. Two cleanups in one engagement. Enter the entire period in Info Gathering. <span class="note">(slides 12, 95, 161)</span></li>
+        <li><b>PY:</b> sold Jan 1–Aug 31. <b>2026 purchases: through Sep 30 (9/30 counts).</b> Same calendar dates for fiscal-year filers. Covers all 12 months of the tax year that most recently closed, except short-period returns. Fixed end. <span class="note">(slides 12, 14, 15)</span></li>
+        <li><b>CY:</b> sold May 1–Dec 31 for all filers. Covers the start of the tax year in progress through the month before purchase (1–11 months). Fixed end. <span class="note">(slides 12, 14, 15)</span></li>
+        <li><b>PY + CY:</b> sold May 1–Aug 31. <b>2026 purchases: through Sep 30 (9/30 counts).</b> Same calendar dates for fiscal-year filers. Covers the start of the prior tax year through the month before purchase, up to 20 months. Two cleanups in one engagement. Enter the entire period in Info Gathering. <span class="note">(slides 12, 95, 161)</span></li>
         <li><b>Full Service:</b> sold all year. Covers the start of a tax year through the month before onboarding at a minimum, and can be extended. Up to 20 months. Only Full Service goes to monthly. <span class="note">(slides 14, 15)</span></li>
         <li><b>Full Service going-to-monthly minimum end:</b> the later of (a) the month before onboarding and (b) the month-end 3 months before the doc review approval, expected cleanup completion (today + 30 or 14 days), or cleanup completion date. <span class="note">(from the Cleanup Period Calculator)</span></li>
         <li><b>A filed return doesn't block a cleanup:</b> a year with a filed return can still be cleaned if the client agrees to the disclosure (ToS effective 1/20/2026). It's treated as a SAM at doc review. CY can be cleaned while PY is unfiled, as long as no one is actively working the unfiled year. <span class="note">(slide 15)</span></li>
         <li><b>SCU timelines:</b> not onboarded by day 60 → refunded and closed. Day 120 → goes to cleanup even if docs are missing. 180-day cleanup entitlement. <span class="note">(slides 96–98)</span></li>
       </ul>
-      <p class="note" style="margin-top:10px"><b>Open items to confirm:</b> (1) Slide 14 lists the PY + CY window as Jan 1–Aug 31, but slides 12 and 95 say May 1–Aug 31. This tool uses May 1. (2) Slides 12 and 14 say CY is "1–11 months", but a May 1 start makes the minimum 4 months. (3) The 3-month going-to-monthly rule isn't in the deck.</p>
+      <p class="note" style="margin-top:10px"><b>Open items to confirm:</b> (1) Slide 14 lists the PY + CY window as Jan 1–Aug 31, but slides 12 and 95 say May 1–Aug 31. This tool uses May 1. (2) The 3-month going-to-monthly rule isn't in the deck.</p>
     </details>
   </div>
 
@@ -194,17 +194,22 @@ footer{color:var(--muted);font-size:12px;margin-top:18px}
   var PY_EXT_YEAR=2026;
   function pyMax(pIdx){return ym(pIdx).y===PY_EXT_YEAR?9:8;}
 
-  // SCU eligibility for tax-year month k
+  // SCU eligibility. Sales windows are CALENDAR dates for every filer (purchase date counts, inclusive);
+  // the cleanup period itself follows the customer's tax year.
   function scu(k,f,pIdx,E){
     var r={};
-    // PY and PY + CY cutoff: month 9 (Sep 30) for purchases made in 2026, month 8 (Aug 31) otherwise
-    var py=pyMax(pIdx), cal=py===9?'Sep 30':'Aug 31', note=py===9?' for 2026 purchases':'';
-    r.PY = k<=py ? {ok:true,s:f.priorStart,e:f.priorEnd}
-                : {ok:false,why:'PY is only sold in tax-year months 1–'+py+note+' (calendar: Jan 1–'+cal+').'};
-    r.CY = k>=5 ? {ok:true,s:f.curStart,e:pIdx-1}
-                : {ok:false,why:'CY is only sold in tax-year months 5–12 (calendar: May 1–Dec 31).'};
-    r.PYCY = (k>=5&&k<=py) ? {ok:true,s:f.priorStart,e:pIdx-1}
-                : {ok:false,why:'PY + CY is only sold in tax-year months 5–'+py+note+' (calendar: May 1–'+cal+').'};
+    var py=pyMax(pIdx), cal=py===9?'Sep 30':'Aug 31', yr=ym(pIdx).y, m=ym(pIdx).m;
+    var pyWin=m<=py, cyWin=m>=5, pycyWin=m>=5&&m<=py;
+    var noCY='No months of the current tax year are complete yet (purchase is in month 1 of the tax year).';
+    r.PY = pyWin ? {ok:true,s:f.priorStart,e:f.priorEnd}
+         : {ok:false,why:'PY is sold Jan 1–'+cal+', '+yr+' (through '+cal+' counts).'};
+    r.CY = !cyWin ? {ok:false,why:'CY is sold May 1–Dec 31.'}
+         : k<2 ? {ok:false,why:noCY}
+         : {ok:true,s:f.curStart,e:pIdx-1};
+    r.PYCY = !pycyWin ? {ok:false,why:'PY + CY is sold May 1–'+cal+', '+yr+' (through '+cal+' counts).'}
+         : k<2 ? {ok:false,why:noCY}
+         : (pIdx-1-f.priorStart+1)>20 ? {ok:false,why:'This would be '+(pIdx-f.priorStart)+' months, over the 20-month PY + CY maximum.'}
+         : {ok:true,s:f.priorStart,e:pIdx-1};
     ['PY','CY','PYCY'].forEach(function(p){if(r[p].ok)r[p].n=r[p].e-r[p].s+1;});
     return r;
   }
